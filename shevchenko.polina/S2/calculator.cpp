@@ -144,6 +144,7 @@ ll_t Calculator::evaluate(const std::string& line)
 
   Stack<ll_t> values;
   Stack<char> operators;
+  bool needOperand = true;
 
   while (!tokens.empty())
   {
@@ -151,16 +152,34 @@ ll_t Calculator::evaluate(const std::string& line)
 
     if (t.isNumber)
     {
+      if (!needOperand)
+      {
+        throw std::logic_error("invalid expression");
+      }
       values.push(t.number);
+      needOperand = false;
     }
     else if (t.op == "(")
     {
+      if (!needOperand)
+      {
+        throw std::logic_error("invalid expression");
+      }
       operators.push('(');
+      needOperand = true;
     }
     else if (t.op == ")")
     {
+      if (needOperand)
+      {
+        throw std::logic_error("invalid expression");
+      }
       while (!operators.empty() && operators.top() != '(')
       {
+        if (values.size() < 2)
+        {
+          throw std::logic_error("invalid expression");
+        }
         char op = operators.pop();
         ll_t b = values.pop();
         ll_t a = values.pop();
@@ -170,25 +189,44 @@ ll_t Calculator::evaluate(const std::string& line)
       {
         throw std::logic_error("mismatched parentheses");
       }
-      operators.pop(); // удаляем '('
+      operators.pop();
+      needOperand = false;
     }
     else if (isOperator(t.op[0]))
     {
+      if (needOperand)
+      {
+        throw std::logic_error("invalid expression");
+      }
       char op = t.op[0];
       while (!operators.empty() && operators.top() != '(' &&
              priority(operators.top()) >= priority(op))
       {
+        if (values.size() < 2)
+        {
+          throw std::logic_error("invalid expression");
+        }
         char topOp = operators.pop();
         ll_t b = values.pop();
         ll_t a = values.pop();
         values.push(apply(topOp, a, b));
       }
       operators.push(op);
+      needOperand = true;
     }
   }
-
+  
+  if (needOperand)
+  {
+    throw std::logic_error("invalid expression");
+  }
+  
   while (!operators.empty())
   {
+    if (values.size() < 2)
+    {
+      throw std::logic_error("invalid expression");
+    }
     char op = operators.pop();
     ll_t b = values.pop();
     ll_t a = values.pop();
