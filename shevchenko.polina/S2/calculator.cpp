@@ -45,12 +45,12 @@ void Calculator::tokenize(const std::string& line, Queue<Token>& tokens)
 {
   size_t pos = 0;
   size_t len = line.size();
-  
+
   while (pos < len)
   {
     skipSpaces(line, pos);
     if (pos >= len) break;
-    
+
     if (isNumber(line[pos]))
     {
       ll_t num = parseNumber(line, pos);
@@ -90,7 +90,7 @@ ll_t Calculator::apply(char op, ll_t a, ll_t b)
     return a % b;
   }
   if (op == '|') return a | b;
-  
+
   throw std::logic_error("unknown operator");
 }
 
@@ -98,14 +98,14 @@ ll_t Calculator::evaluate(const std::string& line)
 {
   Queue<Token> tokens;
   tokenize(line, tokens);
-  
+
   Stack<ll_t> values;
   Stack<char> operators;
-  
+
   while (!tokens.empty())
   {
     Token t = tokens.pop();
-    
+
     if (t.isNumber)
     {
       values.push(t.number);
@@ -143,7 +143,7 @@ ll_t Calculator::evaluate(const std::string& line)
       operators.push(op);
     }
   }
-  
+
   while (!operators.empty())
   {
     char op = operators.pop();
@@ -151,7 +151,7 @@ ll_t Calculator::evaluate(const std::string& line)
     ll_t a = values.pop();
     values.push(apply(op, a, b));
   }
-  
+
   if (values.size() != 1)
   {
     throw std::logic_error("invalid expression");
