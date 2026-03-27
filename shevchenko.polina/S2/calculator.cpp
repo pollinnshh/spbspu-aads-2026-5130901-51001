@@ -215,12 +215,12 @@ ll_t Calculator::evaluate(const std::string& line)
       needOperand = true;
     }
   }
-  
+
   if (needOperand)
   {
     throw std::logic_error("invalid expression");
   }
-  
+
   while (!operators.empty())
   {
     if (values.size() < 2)
