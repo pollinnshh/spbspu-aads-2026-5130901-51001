@@ -1,6 +1,7 @@
 #include "calculator.hpp"
 #include <stdexcept>
 #include <cstdlib>
+#include <limits>
 
 namespace shevchenko
 {
