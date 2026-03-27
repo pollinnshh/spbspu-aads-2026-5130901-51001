@@ -115,7 +115,7 @@ ll_t Calculator::apply(char op, ll_t a, ll_t b)
     }
     return a * b;
   }
-  
+
   if (op == '+') return a + b;
   if (op == '-') return a - b;
   if (op == '*') return a * b;
