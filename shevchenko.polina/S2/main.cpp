@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     file.open(argv[1]);
     if (!file)
     {
-      std::cerr << "error: cannot open file\n";
+      cerr << "error: cannot open file\n";
       return 1;
     }
     input = &file;
@@ -31,13 +31,22 @@ int main(int argc, char* argv[])
     Calculator calc;
     while (getline(*input, line))
     {
-      if (line.empty()) continue;
+      if (line.empty())
+      {
+        continue;
+      }
 
       ll_t result = calc.evaluate(line);
       results.push(result);
     }
 
-    Stack< ll_t > reversed;
+    if (results.empty())
+    {
+      cout << endl;
+      return 0;
+    }
+
+    Stack<ll_t> reversed;
     while (!results.empty())
     {
       reversed.push(results.pop());
@@ -46,16 +55,35 @@ int main(int argc, char* argv[])
     bool first = true;
     while (!reversed.empty())
     {
-      if (!first) cout << ' ';
+      if (!first)
+      {
+        cout << " ";
+      }
       cout << reversed.pop();
       first = false;
     }
-    cout << '\n';
+    cout << endl;
+  }
+  catch (const overflow_error& e)
+  {
+    cerr << e.what() << "\n";
+    return 1;
+  }
+  catch (const logic_error& e)
+  {
+    cerr << e.what() << "\n";
+    return 1;
   }
   catch (const exception& e)
   {
-    cerr << e.what() << '\n';
+    cerr << e.what() << "\n";
     return 1;
   }
+  catch (...)
+  {
+    cerr << "unknown error" << endl;
+    return 1;
+  }
+
   return 0;
 }

@@ -1,5 +1,5 @@
 #include <boost/test/unit_test.hpp>
-#include "../calculator.hpp"
+#include "calculator.hpp"
 
 using namespace shevchenko;
 
