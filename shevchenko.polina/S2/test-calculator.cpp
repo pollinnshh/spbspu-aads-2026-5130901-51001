@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(calc_precedence)
 BOOST_AUTO_TEST_CASE(calc_bitwise_or_precedence)
 {
   Calculator calc;
-  BOOST_TEST(calc.evaluate("1 + 2 | 3") == 4);
+  BOOST_TEST(calc.evaluate("1 + 2 | 3") == 3);
   BOOST_TEST(calc.evaluate("2 | 3 * 4") == 14);
   BOOST_TEST(calc.evaluate("( 1 | 2 ) + 3") == 6);
 }
