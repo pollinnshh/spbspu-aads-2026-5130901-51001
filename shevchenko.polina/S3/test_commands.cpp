@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(create_with_vertices)
   std::istringstream in("g 2 A B\n");
   std::ostringstream out;
   createCommand(graphs, in, out);
-  
+
   const Graph& g = graphs.at("g");
   BOOST_CHECK(g.hasVertex("A"));
   BOOST_CHECK(g.hasVertex("B"));
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(bind_creates_edge)
   std::ostringstream create_out, bind_out;
   createCommand(graphs, create_in, create_out);
   bindCommand(graphs, bind_in, bind_out);
-  
+
   const Graph& g = graphs.at("g");
   const auto& edges = g.outbound("from");
   BOOST_CHECK(!edges.empty());
