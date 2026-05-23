@@ -124,3 +124,73 @@ void BSTree< Key, Value, Compare >::clear(Node* node)
   
   delete node;
 }
+
+template< class Key, class Value, class Compare >
+void BSTree< Key, Value, Compare >::push(const Key& key, const Value& value)
+{
+  if (fake_->left == nullptr)
+  {
+    fake_->left = new Node(key, value, fake_);
+    ++size_;
+    return;
+  }
+  
+  Node* current = fake_->left;
+  Node* parent = nullptr;
+  
+  while (current != nullptr)
+  {
+    parent = current;
+    
+    if (comp_(key, current->data.first))
+    {
+      current = current->left;
+    }
+    else if (comp_(current->data.first, key))
+    {
+      current = current->right;
+    }
+    else
+    {
+      current->data.second = value;
+      return;
+    }
+  }
+  
+  Node* node = new Node(key, value, parent);
+  
+  if (comp_(key, parent->data.first))
+  {
+    parent->left = node;
+  }
+  else
+  {
+    parent->right = node;
+  }
+  
+  ++size_;
+}
+
+template< class Key, class Value, class Compare >
+Value BSTree< Key, Value, Compare >::get(const Key& key) const
+{
+  Node* current = fake_->left;
+  
+  while (current != nullptr)
+  {
+    if (comp_(key, current->data.first))
+    {
+      current = current->left;
+    }
+    else if (comp_(current->data.first, key))
+    {
+      current = current->right;
+    }
+    else
+    {
+      return current->data.second;
+    }
+  }
+  
+  throw std::out_of_range("no such key");
+}
