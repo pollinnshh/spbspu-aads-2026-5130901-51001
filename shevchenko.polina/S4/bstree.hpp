@@ -2,6 +2,8 @@
 #define BSTREE_HPP
 
 #include <cstddef>
+#include <functional>
+#include <stdexcept>
 #include <utility>
 
 namespace shevchenko
@@ -51,6 +53,7 @@ public:
   bool empty() const noexcept;
   
   size_t size() const noexcept;
+  void clear();
   
   iterator begin();
   iterator end();
@@ -74,6 +77,167 @@ private:
   
   void clear(Node* node);
   
+  Node* copy(Node* other, Node* parent);
+  Node* minimum(Node* node) const;
+  Node* findNode(const Key& key) const;
+  
+  size_t height(Node* node) const;
+};
+
+template< class Key, class Value >
+class BSTConstIterator
+{
+  template< class K, class V, class C >
+  friend class BSTree;
+  
+public:
+  BSTConstIterator():
+  node_(nullptr),
+  fake_(nullptr)
+  {}
+  
+  const std::pair< Key, Value >& operator*() const
+  {
+    return node_->data;
+  }
+  
+  const std::pair< Key, Value >* operator->() const
+  {
+    return std::addressof(node_->data);
+  }
+  
+  BSTConstIterator& operator++()
+  {
+    if (node_->right != nullptr)
+    {
+      node_ = node_->right;
+      while (node_->left != nullptr)
+      {
+        node_ = node_->left;
+      }
+      
+      return *this;
+    }
+    Node* parent = node_->parent;
+    
+    while ((parent != fake_) && (node_ == parent->right))
+    {
+      node_ = parent;
+      parent = parent->parent;
+    }
+    node_ = parent;
+
+    return *this;
+  }
+  
+  BSTConstIterator operator++(int)
+  {
+    BSTConstIterator tmp(*this);
+    ++(*this);
+    return tmp;
+  }
+  
+  bool operator==(const BSTConstIterator& other) const
+  {
+    return node_ == other.node_;
+  }
+  
+  bool operator!=(const BSTConstIterator& other) const
+  {
+    return !(*this == other);
+  }
+  
+private:
+  struct Node;
+  
+  const Node* node_;
+  const Node* fake_;
+  
+  BSTConstIterator(const Node* node, const Node* fake):
+  node_(node),
+  fake_(fake)
+  {}
+};
+
+template< class Key, class Value >
+class BSTIterator
+{
+  template< class K, class V, class C >
+  friend class BSTree;
+  
+public:
+  BSTIterator():
+  node_(nullptr),
+  fake_(nullptr)
+  {}
+  
+  operator BSTConstIterator< Key, Value >() const
+  {
+    return BSTConstIterator< Key, Value >(node_, fake_);
+  }
+  
+  std::pair< Key, Value >& operator*() const
+  {
+    return node_->data;
+  }
+  
+  std::pair< Key, Value >* operator->() const
+  {
+    return std::addressof(node_->data);
+  }
+  
+  BSTIterator& operator++()
+  {
+    if (node_->right != nullptr)
+    {
+      node_ = node_->right;
+      while (node_->left != nullptr)
+      {
+        node_ = node_->left;
+      }
+      
+      return *this;
+    }
+    
+    Node* parent = node_->parent;
+    while ((parent != fake_) && (node_ == parent->right))
+    {
+      node_ = parent;
+      parent = parent->parent;
+    }
+    
+    node_ = parent;
+    
+    return *this;
+  }
+  
+  BSTIterator operator++(int)
+  {
+    BSTIterator tmp(*this);
+    ++(*this);
+    return tmp;
+  }
+  
+  bool operator==(const BSTIterator& other) const
+  {
+    return node_ == other.node_;
+  }
+  
+  bool operator!=(const BSTIterator& other) const
+  {
+    return !(*this == other);
+  }
+  
+private:
+  struct Node;
+  
+  Node* node_;
+  Node* fake_;
+  
+  BSTIterator(Node* node, Node* fake):
+  node_(node),
+  fake_(fake)
+  {}
 };
 
 template< class Key, class Value, class Compare >
