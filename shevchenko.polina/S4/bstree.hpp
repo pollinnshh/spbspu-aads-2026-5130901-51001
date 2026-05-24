@@ -598,3 +598,32 @@ BSTree< Key, Value, Compare >::rotateLargeRight(const_iterator it)
 
   return rotateRight(it);
 }
+
+template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::height() const
+{
+  return height(fake_->left);
+}
+
+template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::height(const_iterator it) const
+{
+  return height(const_cast< Node* >(it.node_));
+}
+
+template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::height(Node* node) const
+{
+  if (node == nullptr)
+  {
+    return 0;
+  }
+
+  size_t left = height(node->left);
+  size_t right = height(node->right);
+
+  return ((left > right) ? left : right) + 1;
+}
+}
+
+#endif
