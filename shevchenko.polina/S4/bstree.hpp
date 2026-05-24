@@ -325,6 +325,46 @@ BSTree< Key, Value, Compare >::copy(Node* other, Node* parent)
 }
 
 template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::iterator
+BSTree< Key, Value, Compare >::begin()
+{
+  return iterator(minimum(fake_->left), fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::iterator
+BSTree< Key, Value, Compare >::end()
+{
+  return iterator(fake_, fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::cbegin() const
+{
+  return const_iterator(minimum(fake_->left), fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::cend() const
+{
+  return const_iterator(fake_, fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node*
+BSTree< Key, Value, Compare >::minimum(Node* node) const
+{
+  while ((node != nullptr) && (node->left != nullptr))
+  {
+    node = node->left;
+  }
+
+  return node;
+}
+
+template< class Key, class Value, class Compare >
 bool BSTree< Key, Value, Compare >::empty() const noexcept
 {
   return size_ == 0;
