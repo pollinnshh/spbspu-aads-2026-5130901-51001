@@ -8,13 +8,12 @@ namespace shevchenko
 using Dictionary = BSTree< int, std::string >;
 using Dictionaries = BSTree< std::string, Dictionary >;
 
-void readDict();
+void readDict(std::istream& input, Dictionaries& dictionaries);
 
-void doPrint();
-void doUnion();
-void doIntersect(Dictionaries& dictionaries, std::istream& input);
-void doComplement(Dictionaries& dictionaries, std::istream& input);
-
+void doPrint(Dictionaries& dictionaries, std::istream& input, std::ostream& output);
+void doUnion(Dictionaries& dictionaries, std::istream& input, std::ostream& output);
+void doIntersect(Dictionaries& dictionaries, std::istream& input, std::ostream& output);
+void doComplement(Dictionaries& dictionaries, std::istream& input, std::ostream& output);
 }
 
 #endif
