@@ -6,12 +6,18 @@
 
 namespace shevchenko
 {
+
 void readDict(std::istream& input, Dictionaries& dictionaries)
 {
   std::string line;
 
   while (std::getline(input, line))
   {
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+    {
+      line.pop_back();
+    }
+
     if (line.empty())
     {
       continue;
@@ -189,4 +195,5 @@ void doComplement(Dictionaries& dictionaries, std::istream& input, std::ostream&
     output << "<INVALID COMMAND>\n";
   }
 }
+
 }
