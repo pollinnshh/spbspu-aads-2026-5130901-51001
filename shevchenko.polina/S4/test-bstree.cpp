@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(add_one_element)
 {
   Tree tree;
   tree.push(2, "two");
-  
+
   BOOST_CHECK(!tree.empty());
   BOOST_TEST(tree.size() == 1);
   BOOST_CHECK(tree.has(2));
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(add_several_elements)
   tree.push(6, "six");
   tree.push(1, "one");
   tree.push(3, "three");
-  
+
   BOOST_TEST(tree.size() == 5);
   BOOST_CHECK(tree.has(1));
   BOOST_CHECK(tree.has(2));
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(add_existing_key_updates_value)
   Tree tree;
   tree.push(1, "one");
   tree.push(1, "uno");
-  
+
   BOOST_TEST(tree.size() == 1);
   BOOST_TEST(tree.get(1) == "uno");
 }
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(get_returns_correct_value)
   Tree tree;
   tree.push(1, "one");
   tree.push(2, "two");
-  
+
   BOOST_TEST(tree.get(1) == "one");
   BOOST_TEST(tree.get(2) == "two");
 }
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(const_get_works_on_const_tree)
   Tree tree;
   tree.push(1, "one");
   const Tree& constTree = tree;
-  
+
   BOOST_TEST(constTree.get(1) == "one");
   BOOST_CHECK_THROW(constTree.get(2), std::out_of_range);
 }
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(clear_removes_all_elements)
 {
   Tree tree = makeTestTree();
   tree.clear();
-  
+
   BOOST_CHECK(tree.empty());
   BOOST_TEST(tree.size() == 0);
   BOOST_CHECK(!tree.has(1));
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(iterator_goes_through_one_element)
 {
   Tree tree;
   tree.push(2, "two");
-  
+
   auto it = tree.begin();
   BOOST_REQUIRE(it != tree.end());
   BOOST_TEST(it->first == 2);
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(iterator_visits_keys_in_sorted_order)
   tree.push(6, "six");
   tree.push(1, "one");
   tree.push(3, "three");
-  
+
   std::vector< int > keys = getKeys(tree);
   std::vector< int > expected{1, 2, 3, 4, 6};
   BOOST_TEST(keys == expected, boost::test_tools::per_element());
@@ -184,13 +184,13 @@ BOOST_AUTO_TEST_CASE(const_iterator_visits_keys_in_sorted_order)
 {
   Tree tree = makeTestTree();
   const Tree& constTree = tree;
-  
+
   std::vector< int > keys;
   for (auto it = constTree.cbegin(); it != constTree.cend(); ++it)
   {
     keys.push_back(it->first);
   }
-  
+
   std::vector< int > expected{1, 2, 3, 4, 5, 6, 7};
   BOOST_TEST(keys == expected, boost::test_tools::per_element());
 }
@@ -218,11 +218,11 @@ BOOST_AUTO_TEST_CASE(copy_constructor_makes_deep_copy)
 {
   Tree original = makeTestTree();
   Tree copy(original);
-  
+
   BOOST_TEST(copy.size() == original.size());
   BOOST_TEST(copy.get(4) == "four");
   BOOST_TEST(copy.get(2) == "two");
-  
+
   copy.push(8, "eight");
   BOOST_TEST(copy.size() == 8);
   BOOST_TEST(original.size() == 7);
@@ -233,9 +233,9 @@ BOOST_AUTO_TEST_CASE(move_constructor_transfers_data)
 {
   Tree original = makeTestTree();
   size_t originalSize = original.size();
-  
+
   Tree moved(std::move(original));
-  
+
   BOOST_TEST(moved.size() == originalSize);
   BOOST_TEST(moved.get(4) == "four");
   BOOST_CHECK(original.empty());
@@ -246,9 +246,9 @@ BOOST_AUTO_TEST_CASE(copy_assignment_makes_deep_copy)
   Tree original = makeTestTree();
   Tree copy;
   copy.push(100, "hundred");
-  
+
   copy = original;
-  
+
   BOOST_TEST(copy.size() == original.size());
   BOOST_TEST(copy.get(4) == "four");
   BOOST_CHECK(!copy.has(100));
@@ -259,9 +259,9 @@ BOOST_AUTO_TEST_CASE(move_assignment_transfers_data)
   Tree original = makeTestTree();
   Tree moved;
   moved.push(100, "hundred");
-  
+
   moved = std::move(original);
-  
+
   BOOST_TEST(moved.size() == 7);
   BOOST_TEST(moved.get(4) == "four");
   BOOST_CHECK(original.empty());
@@ -270,14 +270,14 @@ BOOST_AUTO_TEST_CASE(move_assignment_transfers_data)
 BOOST_AUTO_TEST_CASE(print_second_dictionary)
 {
   Tree second = makeSecondDict();
-  
+
   std::ostringstream output;
   output << "second";
   for (auto it = second.cbegin(); it != second.cend(); ++it)
   {
     output << " " << it->first << " " << it->second;
   }
-  
+
   BOOST_TEST(output.str() == "second 1 name 2 keyboard 4 mouse");
 }
 
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(complement_second_minus_first)
 {
   Tree second = makeSecondDict();
   Tree first = makeFirstDict();
-  
+
   Tree result;
   for (auto it = second.cbegin(); it != second.cend(); ++it)
   {
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(complement_second_minus_first)
       result.push(it->first, it->second);
     }
   }
-  
+
   BOOST_TEST(result.size() == 1);
   BOOST_CHECK(result.has(4));
   BOOST_TEST(result.get(4) == "mouse");
@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(intersect_first_and_second)
 {
   Tree first = makeFirstDict();
   Tree second = makeSecondDict();
-  
+
   Tree result;
   for (auto it = first.cbegin(); it != first.cend(); ++it)
   {
@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(intersect_first_and_second)
     {
     }
   }
-  
+
   BOOST_TEST(result.size() == 2);
   BOOST_CHECK(result.has(1));
   BOOST_CHECK(result.has(2));
@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(union_first_and_second)
 {
   Tree first = makeFirstDict();
   Tree second = makeSecondDict();
-  
+
   Tree result;
   for (auto it = first.cbegin(); it != first.cend(); ++it)
   {
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(union_first_and_second)
       result.push(it->first, it->second);
     }
   }
-  
+
   BOOST_TEST(result.size() == 3);
   BOOST_TEST(result.get(1) == "name");
   BOOST_TEST(result.get(2) == "surname");
@@ -361,7 +361,7 @@ BOOST_AUTO_TEST_CASE(union_second_and_first_left_wins)
 {
   Tree second = makeSecondDict();
   Tree first = makeFirstDict();
-  
+
   Tree result;
   for (auto it = second.cbegin(); it != second.cend(); ++it)
   {
@@ -378,7 +378,7 @@ BOOST_AUTO_TEST_CASE(union_second_and_first_left_wins)
       result.push(it->first, it->second);
     }
   }
-  
+
   BOOST_TEST(result.size() == 3);
   BOOST_TEST(result.get(1) == "name");
   BOOST_TEST(result.get(2) == "keyboard");
@@ -388,13 +388,13 @@ BOOST_AUTO_TEST_CASE(union_second_and_first_left_wins)
 BOOST_AUTO_TEST_CASE(empty_dictionary_output)
 {
   Tree empty;
-  
+
   std::ostringstream output;
   if (empty.empty())
   {
     output << "<EMPTY>";
   }
-  
+
   BOOST_TEST(output.str() == "<EMPTY>");
 }
 

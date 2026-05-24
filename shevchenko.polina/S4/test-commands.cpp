@@ -14,22 +14,22 @@ namespace
 Dictionaries makeDictionaries()
 {
   Dictionaries dicts;
-  
+
   Dictionary first;
   first.push(1, "name");
   first.push(2, "surname");
-  
+
   Dictionary second;
   second.push(4, "mouse");
   second.push(1, "name");
   second.push(2, "keyboard");
-  
+
   Dictionary empty;
-  
+
   dicts.push("first", first);
   dicts.push("second", second);
   dicts.push("empty", empty);
-  
+
   return dicts;
 }
 
@@ -37,10 +37,10 @@ std::string runCommand(Dictionaries& dicts, const std::string& command)
 {
   std::istringstream input(command);
   std::ostringstream output;
-  
+
   std::string cmd;
   input >> cmd;
-  
+
   if (cmd == "print")
   {
     doPrint(dicts, input, output);
@@ -61,7 +61,7 @@ std::string runCommand(Dictionaries& dicts, const std::string& command)
   {
     output << "<INVALID COMMAND>\n";
   }
-  
+
   return output.str();
 }
 }
