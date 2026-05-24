@@ -2,6 +2,8 @@
 #define COMMANDS_HPP
 
 #include "bstree.hpp"
+#include <string>
+#include <iostream>
 
 namespace shevchenko
 {
