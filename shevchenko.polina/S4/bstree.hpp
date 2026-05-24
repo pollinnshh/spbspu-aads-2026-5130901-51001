@@ -399,6 +399,31 @@ void BSTree< Key, Value, Compare >::clear(Node* node)
 }
 
 template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node*
+BSTree< Key, Value, Compare >::findNode(const Key& key) const
+{
+  Node* current = fake_->left;
+
+  while (current != nullptr)
+  {
+    if (comp_(key, current->data.first))
+    {
+      current = current->left;
+    }
+    else if (comp_(current->data.first, key))
+    {
+      current = current->right;
+    }
+    else
+    {
+      return current;
+    }
+  }
+
+  return nullptr;
+}
+
+template< class Key, class Value, class Compare >
 void BSTree< Key, Value, Compare >::push(const Key& key, const Value& value)
 {
   if (fake_->left == nullptr)
@@ -466,4 +491,110 @@ Value BSTree< Key, Value, Compare >::get(const Key& key) const
   }
 
   throw std::out_of_range("no such key");
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::rotateLeft(const_iterator it)
+{
+  Node* x = const_cast< Node* >(it.node_);
+
+  if ((x == fake_) || (x->right == nullptr))
+  {
+    return cend();
+  }
+
+  Node* y = x->right;
+
+  x->right = y->left;
+
+  if (y->left != nullptr)
+  {
+    y->left->parent = x;
+  }
+
+  y->parent = x->parent;
+
+  if (x->parent->left == x)
+  {
+    x->parent->left = y;
+  }
+  else
+  {
+    x->parent->right = y;
+  }
+
+  y->left = x;
+  x->parent = y;
+
+  return const_iterator(y, fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::rotateRight(const_iterator it)
+{
+  Node* y = const_cast< Node* >(it.node_);
+
+  if ((y == fake_) || (y->left == nullptr))
+  {
+    return cend();
+  }
+
+  Node* x = y->left;
+
+  y->left = x->right;
+
+  if (x->right != nullptr)
+  {
+    x->right->parent = y;
+  }
+
+  x->parent = y->parent;
+
+  if (y->parent->left == y)
+  {
+    y->parent->left = x;
+  }
+  else
+  {
+    y->parent->right = x;
+  }
+
+  x->right = y;
+  y->parent = x;
+
+  return const_iterator(x, fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::rotateLargeLeft(const_iterator it)
+{
+  Node* node = const_cast< Node* >(it.node_);
+
+  if ((node == fake_) || (node->right == nullptr))
+  {
+    return cend();
+  }
+
+  rotateRight(const_iterator(node->right, fake_));
+
+  return rotateLeft(it);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::rotateLargeRight(const_iterator it)
+{
+  Node* node = const_cast< Node* >(it.node_);
+
+  if ((node == fake_) || (node->left == nullptr))
+  {
+    return cend();
+  }
+
+  rotateLeft(const_iterator(node->left, fake_));
+
+  return rotateRight(it);
 }
