@@ -8,6 +8,7 @@
 
 namespace shevchenko
 {
+
 template< class Key, class Value >
 class BSTIterator;
 
@@ -54,6 +55,7 @@ public:
 
   size_t size() const noexcept;
   void clear();
+  bool has(const Key& key) const;
 
   iterator begin();
   iterator end();
@@ -69,11 +71,6 @@ public:
 
   size_t height() const;
   size_t height(const_iterator it) const;
-
-  bool has(const Key& key) const
-  {
-    return findNode(key) != nullptr;
-  }
 
 private:
   Node* fake_;
@@ -123,7 +120,8 @@ public:
 
       return *this;
     }
-    Node* parent = node_->parent;
+
+    typename BSTree< Key, Value >::Node* parent = node_->parent;
 
     while ((parent != fake_) && (node_ == parent->right))
     {
@@ -204,7 +202,8 @@ public:
       return *this;
     }
 
-    Node* parent = node_->parent;
+    typename BSTree< Key, Value >::Node* parent = node_->parent;
+
     while ((parent != fake_) && (node_ == parent->right))
     {
       node_ = parent;
@@ -251,6 +250,9 @@ fake_(new Node(Key(), Value(), nullptr)),
 size_(0),
 comp_(Compare())
 {
+  fake_->left = nullptr;
+  fake_->right = nullptr;
+  fake_->parent = nullptr;
 }
 
 template< class Key, class Value, class Compare >
@@ -259,6 +261,9 @@ fake_(new Node(Key(), Value(), nullptr)),
 size_(0),
 comp_(other.comp_)
 {
+  fake_->left = nullptr;
+  fake_->right = nullptr;
+  fake_->parent = nullptr;
   fake_->left = copy(other.fake_->left, fake_);
 }
 
@@ -269,7 +274,17 @@ size_(other.size_),
 comp_(std::move(other.comp_))
 {
   other.fake_ = new Node(Key(), Value(), nullptr);
+  other.fake_->left = nullptr;
+  other.fake_->right = nullptr;
+  other.fake_->parent = nullptr;
   other.size_ = 0;
+}
+
+template< class Key, class Value, class Compare >
+BSTree< Key, Value, Compare >::~BSTree()
+{
+  clear();
+  delete fake_;
 }
 
 template< class Key, class Value, class Compare >
@@ -299,74 +314,12 @@ BSTree< Key, Value, Compare >::operator=(BSTree&& other) noexcept
     comp_ = std::move(other.comp_);
 
     other.fake_ = new Node(Key(), Value(), nullptr);
+    other.fake_->left = nullptr;
+    other.fake_->right = nullptr;
+    other.fake_->parent = nullptr;
     other.size_ = 0;
   }
   return *this;
-}
-
-template< class Key, class Value, class Compare >
-BSTree< Key, Value, Compare >::~BSTree()
-{
-  clear();
-  delete fake_;
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::Node*
-BSTree< Key, Value, Compare >::copy(Node* other, Node* parent)
-{
-  if (other == nullptr)
-  {
-    return nullptr;
-  }
-
-  Node* new_node = new Node(other->data.first, other->data.second, parent);
-  ++size_;
-
-  new_node->left = copy(other->left, new_node);
-  new_node->right = copy(other->right, new_node);
-
-  return new_node;
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::iterator
-BSTree< Key, Value, Compare >::begin()
-{
-  return iterator(minimum(fake_->left), fake_);
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::iterator
-BSTree< Key, Value, Compare >::end()
-{
-  return iterator(fake_, fake_);
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::const_iterator
-BSTree< Key, Value, Compare >::cbegin() const
-{
-  return const_iterator(minimum(fake_->left), fake_);
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::const_iterator
-BSTree< Key, Value, Compare >::cend() const
-{
-  return const_iterator(fake_, fake_);
-}
-
-template< class Key, class Value, class Compare >
-typename BSTree< Key, Value, Compare >::Node*
-BSTree< Key, Value, Compare >::minimum(Node* node) const
-{
-  while ((node != nullptr) && (node->left != nullptr))
-  {
-    node = node->left;
-  }
-
-  return node;
 }
 
 template< class Key, class Value, class Compare >
@@ -379,6 +332,12 @@ template< class Key, class Value, class Compare >
 size_t BSTree< Key, Value, Compare >::size() const noexcept
 {
   return size_;
+}
+
+template< class Key, class Value, class Compare >
+bool BSTree< Key, Value, Compare >::has(const Key& key) const
+{
+  return findNode(key) != nullptr;
 }
 
 template< class Key, class Value, class Compare >
@@ -401,6 +360,35 @@ void BSTree< Key, Value, Compare >::clear(Node* node)
   clear(node->right);
 
   delete node;
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node*
+BSTree< Key, Value, Compare >::copy(Node* other, Node* parent)
+{
+  if (other == nullptr)
+  {
+    return nullptr;
+  }
+
+  Node* new_node = new Node(other->data.first, other->data.second, parent);
+  ++size_;
+
+  new_node->left = copy(other->left, new_node);
+  new_node->right = copy(other->right, new_node);
+
+  return new_node;
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node*
+BSTree< Key, Value, Compare >::minimum(Node* node) const
+{
+  while ((node != nullptr) && (node->left != nullptr))
+  {
+    node = node->left;
+  }
+  return node;
 }
 
 template< class Key, class Value, class Compare >
@@ -477,25 +465,14 @@ void BSTree< Key, Value, Compare >::push(const Key& key, const Value& value)
 template< class Key, class Value, class Compare >
 Value BSTree< Key, Value, Compare >::get(const Key& key) const
 {
-  Node* current = fake_->left;
+  Node* node = findNode(key);
 
-  while (current != nullptr)
+  if (node == nullptr)
   {
-    if (comp_(key, current->data.first))
-    {
-      current = current->left;
-    }
-    else if (comp_(current->data.first, key))
-    {
-      current = current->right;
-    }
-    else
-    {
-      return current->data.second;
-    }
+    throw std::out_of_range("no such key");
   }
 
-  throw std::out_of_range("no such key");
+  return node->data.second;
 }
 
 template< class Key, class Value, class Compare >
@@ -564,6 +541,34 @@ Value BSTree< Key, Value, Compare >::drop(const Key& key)
 
   --size_;
   return result;
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::iterator
+BSTree< Key, Value, Compare >::begin()
+{
+  return iterator(minimum(fake_->left), fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::iterator
+BSTree< Key, Value, Compare >::end()
+{
+  return iterator(fake_, fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::cbegin() const
+{
+  return const_iterator(minimum(fake_->left), fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::const_iterator
+BSTree< Key, Value, Compare >::cend() const
+{
+  return const_iterator(fake_, fake_);
 }
 
 template< class Key, class Value, class Compare >
@@ -696,6 +701,8 @@ size_t BSTree< Key, Value, Compare >::height(Node* node) const
   size_t right = height(node->right);
 
   return ((left > right) ? left : right) + 1;
+}
+
 }
 
 #endif
