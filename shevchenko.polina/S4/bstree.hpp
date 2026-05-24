@@ -70,6 +70,11 @@ public:
   size_t height() const;
   size_t height(const_iterator it) const;
 
+  bool has(const Key& key) const
+  {
+    return findNode(key) != nullptr;
+  }
+
 private:
   Node* fake_;
   size_t size_;
@@ -494,6 +499,74 @@ Value BSTree< Key, Value, Compare >::get(const Key& key) const
 }
 
 template< class Key, class Value, class Compare >
+Value BSTree< Key, Value, Compare >::drop(const Key& key)
+{
+  Node* node = findNode(key);
+
+  if (node == nullptr)
+  {
+    throw std::out_of_range("no such key");
+  }
+
+  Value result = std::move(node->data.second);
+
+  if (node->left == nullptr && node->right == nullptr)
+  {
+    if (node->parent->left == node)
+    {
+      node->parent->left = nullptr;
+    }
+    else
+    {
+      node->parent->right = nullptr;
+    }
+    delete node;
+  }
+  else if (node->left == nullptr)
+  {
+    Node* right = node->right;
+    right->parent = node->parent;
+
+    if (node->parent->left == node)
+    {
+      node->parent->left = right;
+    }
+    else
+    {
+      node->parent->right = right;
+    }
+    delete node;
+  }
+  else if (node->right == nullptr)
+  {
+    Node* left = node->left;
+    left->parent = node->parent;
+
+    if (node->parent->left == node)
+    {
+      node->parent->left = left;
+    }
+    else
+    {
+      node->parent->right = left;
+    }
+    delete node;
+  }
+  else
+  {
+    Node* successor = minimum(node->right);
+    Key new_key = std::move(successor->data.first);
+    Value new_value = std::move(successor->data.second);
+    drop(successor->data.first);
+    node->data.first = std::move(new_key);
+    node->data.second = std::move(new_value);
+  }
+
+  --size_;
+  return result;
+}
+
+template< class Key, class Value, class Compare >
 typename BSTree< Key, Value, Compare >::const_iterator
 BSTree< Key, Value, Compare >::rotateLeft(const_iterator it)
 {
@@ -623,7 +696,6 @@ size_t BSTree< Key, Value, Compare >::height(Node* node) const
   size_t right = height(node->right);
 
   return ((left > right) ? left : right) + 1;
-}
 }
 
 #endif

@@ -43,8 +43,8 @@ int main(int argc, char* argv[])
     }
     else
     {
-      output << "<INVALID COMMAND>\n";
-      input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      std::cout << "<INVALID COMMAND>\n";
+      std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
   }
 
