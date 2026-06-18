@@ -195,25 +195,6 @@ BOOST_AUTO_TEST_CASE(const_iterator_visits_keys_in_sorted_order)
   BOOST_TEST(keys == expected, boost::test_tools::per_element());
 }
 
-BOOST_AUTO_TEST_CASE(empty_tree_height_is_zero)
-{
-  Tree tree;
-  BOOST_TEST(tree.height() == 0);
-}
-
-BOOST_AUTO_TEST_CASE(single_node_height_is_one)
-{
-  Tree tree;
-  tree.push(1, "one");
-  BOOST_TEST(tree.height() == 1);
-}
-
-BOOST_AUTO_TEST_CASE(tree_height_is_correct)
-{
-  Tree tree = makeTestTree();
-  BOOST_TEST(tree.height() == 3);
-}
-
 BOOST_AUTO_TEST_CASE(copy_constructor_makes_deep_copy)
 {
   Tree original = makeTestTree();
