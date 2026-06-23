@@ -3,9 +3,19 @@
 
 #include "bstree.hpp"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
-#include <vector>
 #include <ctime>
+#include <vector>
+#include <cstdlib>
+
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+#else
+#include <unistd.h>
+#endif
 
 namespace shevchenko
 {
@@ -14,6 +24,15 @@ struct Translation
 {
   std::string russian;
   std::string pos;
+};
+
+struct WordStats
+{
+  int correctCount = 0;
+  int wrongCount = 0;
+  int totalAttempts = 0;
+  bool isLearned = false;
+  time_t lastReview = 0;
 };
 
 struct User
@@ -84,7 +103,7 @@ public:
 
     if (dict.contains(eng))
     {
-      std::cout << "<INVALID COMMAND: Word already exists>\n";
+      std::cout << "<INVALID COMMAND: Word already exists. Use add-translation>\n";
       return;
     }
 
@@ -108,7 +127,7 @@ public:
 
     if (!dict.contains(eng))
     {
-      std::cout << "<ERROR: Word '" << eng << "' not found>\n";
+      std::cout << "<ERROR: Word '" << eng << "' not found. Use add-word first>\n";
       return;
     }
 
@@ -151,6 +170,9 @@ public:
     newUser.name = username;
     newUser.assignedDict = "";
     users_.insert(username, newUser);
+
+    stats_.insert(username, BSTree<std::string, WordStats>());
+
     std::cout << "<USER CREATED: " << username << ">\n";
   }
 
@@ -158,11 +180,13 @@ public:
   {
     if (!users_.contains(username))
     {
-      std::cout << "<ERROR: User '" << username << "' not found>\n";
+      std::cout << "<ERROR: User '" << username << "' not found. Use add-user first>\n";
       return;
     }
 
     currentUser_ = username;
+    loadUserStats(username);
+
     std::cout << "<WELCOME BACK, " << username << ">\n";
 
     User user = users_.at(username);
@@ -174,6 +198,9 @@ public:
     {
       std::cout << "Assigned dictionary: " << user.assignedDict << "\n";
     }
+
+    int learned = countLearnedWords(username);
+    std::cout << "Learned words: " << learned << "\n";
   }
 
   void logout()
@@ -184,6 +211,7 @@ public:
       return;
     }
 
+    saveUserStats(currentUser_);
     std::cout << "<USER LOGGED OUT: " << currentUser_ << ">\n";
     currentUser_ = "";
   }
@@ -208,10 +236,365 @@ public:
     std::cout << "<DICTIONARY ASSIGNED: " << dictName << " to " << username << ">\n";
   }
 
+  void generateLesson(const std::string& username, const std::string& dictName, int count)
+  {
+    if (!users_.contains(username))
+    {
+      std::cout << "<ERROR: User '" << username << "' not found>\n";
+      return;
+    }
+
+    if (!dictionaries_.contains(dictName))
+    {
+      std::cout << "<ERROR: Dictionary '" << dictName << "' not found>\n";
+      return;
+    }
+
+    BSTree<std::string, Translation>& dict = dictionaries_.at(dictName);
+    std::vector<std::string> allWords = dict.getKeys();
+
+    if (allWords.empty())
+    {
+      std::cout << "<ERROR: Dictionary is empty>\n";
+      return;
+    }
+
+    for (int i = static_cast<int>(allWords.size()) - 1; i > 0; --i)
+    {
+      int j = rand() % (i + 1);
+      std::string temp = allWords[i];
+      allWords[i] = allWords[j];
+      allWords[j] = temp;
+    }
+
+    int lessonSize = count;
+    if (lessonSize > static_cast<int>(allWords.size()))
+    {
+      lessonSize = static_cast<int>(allWords.size());
+    }
+
+    std::string filename = getDesktopPath() + "lesson_" + username + "_" + getCurrentDate() + ".csv";
+    std::ofstream file(filename.c_str());
+
+    if (!file.is_open())
+    {
+      std::cout << "<ERROR: Cannot create file on Desktop\n";
+      return;
+    }
+
+    file << "word,user_answer,correct_translation,result\n";
+
+    std::cout << "========================================\n";
+    std::cout << "LESSON STARTED\n";
+    std::cout << "========================================\n";
+    std::cout << "User: " << username << "\n";
+    std::cout << "Dictionary: " << dictName << "\n";
+    std::cout << "Words: " << lessonSize << "\n\n";
+
+    int correctCount = 0;
+    int totalCount = 0;
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+
+    for (int i = 0; i < lessonSize; ++i)
+    {
+      std::string word = allWords[i];
+      Translation trans = dict.at(word);
+
+      std::cout << "[" << i+1 << "/" << lessonSize << "] " << word << "\n";
+      std::cout << "Your translation: ";
+
+      std::string answer;
+      std::getline(std::cin, answer);
+
+      bool isCorrect = (trim(answer) == trans.russian);
+      totalCount++;
+      if (isCorrect) correctCount++;
+
+      file << word << "," << answer << "," << trans.russian << "," << (isCorrect ? "CORRECT" : "WRONG") << "\n";
+
+      WordStats ws;
+      if (userStats.contains(word))
+      {
+        ws = userStats.at(word);
+      }
+      ws.totalAttempts++;
+
+      if (isCorrect)
+      {
+        ws.correctCount++;
+        std::cout << "CORRECT!\n";
+        if (ws.correctCount >= 3 && !ws.isLearned)
+        {
+          ws.isLearned = true;
+          std::cout << "   Word '" << word << "' is now LEARNED!\n";
+        }
+      }
+      else
+      {
+        ws.wrongCount++;
+        std::cout << "WRONG! Correct: " << trans.russian << "\n";
+      }
+
+      userStats.insert(word, ws);
+      std::cout << "\n";
+    }
+
+    file.close();
+    saveUserStats(username);
+
+    std::cout << "========================================\n";
+    std::cout << "LESSON RESULTS\n";
+    std::cout << "========================================\n";
+    std::cout << "Correct: " << correctCount << "/" << totalCount;
+    if (totalCount > 0)
+    {
+      std::cout << " (" << (correctCount * 100 / totalCount) << "%)\n";
+    }
+    else
+    {
+      std::cout << "\n";
+    }
+    std::cout << "========================================\n";
+    std::cout << "History saved to: " << filename << "\n";
+  }
+
+  void showStats(const std::string& username)
+  {
+    if (!users_.contains(username))
+    {
+      std::cout << "<ERROR: User not found>\n";
+      return;
+    }
+
+    User user = users_.at(username);
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+
+    int learned = 0;
+    int weak = 0;
+    int totalAttempts = 0;
+    int totalCorrect = 0;
+
+    std::vector<std::string> words = userStats.getKeys();
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+      WordStats ws = userStats.at(words[i]);
+      totalAttempts += ws.totalAttempts;
+      totalCorrect += ws.correctCount;
+      if (ws.isLearned) learned++;
+      if (!ws.isLearned && ws.wrongCount >= ws.correctCount && ws.totalAttempts >= 2) weak++;
+    }
+
+    std::cout << "=== STATS FOR " << username << " ===\n";
+    std::cout << "Assigned dictionary: " << user.assignedDict << "\n";
+    std::cout << "Learned words: " << learned << "\n";
+    if (totalAttempts > 0)
+    {
+      std::cout << "Success rate: " << (totalCorrect * 100 / totalAttempts) << "%\n";
+    }
+    else
+    {
+      std::cout << "Success rate: 0%\n";
+    }
+    std::cout << "Weak words: " << weak << "\n";
+  }
+
+  void showKnownWords(const std::string& username)
+  {
+    if (!users_.contains(username))
+    {
+      std::cout << "<ERROR: User not found>\n";
+      return;
+    }
+
+    std::cout << "=== KNOWN WORDS ===\n";
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    std::vector<std::string> words = userStats.getKeys();
+    bool found = false;
+
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+      WordStats ws = userStats.at(words[i]);
+      if (ws.isLearned)
+      {
+        std::cout << "  " << words[i] << " (correct: " << ws.correctCount << ")\n";
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      std::cout << "  No learned words yet\n";
+    }
+  }
+
+  void showWeakWords(const std::string& username)
+  {
+    if (!users_.contains(username))
+    {
+      std::cout << "<ERROR: User not found>\n";
+      return;
+    }
+
+    std::cout << "=== WEAK WORDS ===\n";
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    std::vector<std::string> words = userStats.getKeys();
+    bool found = false;
+
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+      WordStats ws = userStats.at(words[i]);
+      if (!ws.isLearned && ws.wrongCount >= ws.correctCount && ws.totalAttempts >= 2)
+      {
+        std::cout << "  " << words[i] << " (correct: " << ws.correctCount << ", wrong: " << ws.wrongCount << ")\n";
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      std::cout << "  No weak words\n";
+    }
+  }
+
+  bool isLoggedIn() const
+  {
+    return !currentUser_.empty();
+  }
+
+  std::string getCurrentUser() const
+  {
+    return currentUser_;
+  }
+
 private:
   BSTree<std::string, BSTree<std::string, Translation>> dictionaries_;
   BSTree<std::string, User> users_;
+  BSTree<std::string, BSTree<std::string, WordStats>> stats_;
   std::string currentUser_;
+
+  int countLearnedWords(const std::string& username)
+  {
+    if (!stats_.contains(username))
+    {
+      return 0;
+    }
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    std::vector<std::string> words = userStats.getKeys();
+    int count = 0;
+
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+      WordStats ws = userStats.at(words[i]);
+      if (ws.isLearned) count++;
+    }
+
+    return count;
+  }
+
+  std::string getCurrentDate()
+  {
+    time_t now = time(nullptr);
+    char buf[20];
+    strftime(buf, sizeof(buf), "%Y-%m-%d", localtime(&now));
+    return std::string(buf);
+  }
+
+  std::string getDesktopPath()
+  {
+#ifdef _WIN32
+    char* desktop = nullptr;
+    size_t len = 0;
+    _dupenv_s(&desktop, &len, "USERPROFILE");
+    std::string path = std::string(desktop) + "\\Desktop\\";
+    free(desktop);
+    return path;
+#else
+    return std::string(getenv("HOME")) + "/Desktop/";
+#endif
+  }
+
+  std::string trim(const std::string& str)
+  {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return str.substr(first, last - first + 1);
+  }
+
+  void saveUserStats(const std::string& username)
+  {
+    if (!stats_.contains(username))
+    {
+      return;
+    }
+
+    std::string filename = "user_" + username + ".txt";
+    std::ofstream file(filename.c_str());
+
+    if (!file.is_open()) return;
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    std::vector<std::string> words = userStats.getKeys();
+
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+      WordStats ws = userStats.at(words[i]);
+      file << words[i] << "|" << ws.correctCount << "|" << ws.wrongCount << "|"
+      << ws.totalAttempts << "|" << ws.isLearned << "|" << ws.lastReview << "\n";
+    }
+
+    file.close();
+  }
+
+  void loadUserStats(const std::string& username)
+  {
+    std::string filename = "user_" + username + ".txt";
+    std::ifstream file(filename.c_str());
+
+    if (!file.is_open()) return;
+
+    if (!stats_.contains(username))
+    {
+      stats_.insert(username, BSTree<std::string, WordStats>());
+    }
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    std::string line;
+
+    while (std::getline(file, line))
+    {
+      std::string word;
+      int correct, wrong, total, learned;
+      long lastReview;
+
+      size_t pos = line.find('|');
+      if (pos == std::string::npos) continue;
+
+      word = line.substr(0, pos);
+      std::string rest = line.substr(pos + 1);
+      std::stringstream ss(rest);
+
+      ss >> correct; ss.ignore();
+      ss >> wrong; ss.ignore();
+      ss >> total; ss.ignore();
+      ss >> learned; ss.ignore();
+      ss >> lastReview;
+
+      WordStats ws;
+      ws.correctCount = correct;
+      ws.wrongCount = wrong;
+      ws.totalAttempts = total;
+      ws.isLearned = (learned == 1);
+      ws.lastReview = static_cast<time_t>(lastReview);
+
+      userStats.insert(word, ws);
+    }
+
+    file.close();
+  }
 };
 
 }
