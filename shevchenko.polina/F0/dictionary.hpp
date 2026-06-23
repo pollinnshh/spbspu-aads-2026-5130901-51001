@@ -9,13 +9,7 @@
 #include <ctime>
 #include <vector>
 #include <cstdlib>
-
-#ifdef _WIN32
-#include <direct.h>
-#define getcwd _getcwd
-#else
 #include <unistd.h>
-#endif
 
 namespace shevchenko
 {
@@ -49,6 +43,7 @@ public:
     srand(static_cast<unsigned int>(time(nullptr)));
   }
 
+
   void makeDictionary(const std::string& name)
   {
     if (dictionaries_.contains(name))
@@ -56,6 +51,7 @@ public:
       std::cout << "<INVALID COMMAND: Dictionary '" << name << "' already exists>\n";
       return;
     }
+
     dictionaries_.insert(name, BSTree<std::string, Translation>());
     std::cout << "<DICTIONARY CREATED: " << name << ">\n";
   }
@@ -236,6 +232,7 @@ public:
     std::cout << "<DICTIONARY ASSIGNED: " << dictName << " to " << username << ">\n";
   }
 
+
   void generateLesson(const std::string& username, const std::string& dictName, int count)
   {
     if (!users_.contains(username))
@@ -358,6 +355,137 @@ public:
     std::cout << "History saved to: " << filename << "\n";
   }
 
+  void showHistory(const std::string& filename)
+  {
+    std::ifstream file(filename.c_str());
+    if (!file.is_open())
+    {
+      std::cout << "<ERROR: Cannot open file " << filename << "\n";
+      return;
+    }
+
+    std::string line;
+    std::cout << "\n=== HISTORY FROM " << filename << " ===\n";
+
+    while (std::getline(file, line))
+    {
+      std::cout << line << "\n";
+    }
+    file.close();
+  }
+
+  void weakLesson(const std::string& username, const std::string& dictName, int count)
+  {
+    if (!users_.contains(username))
+    {
+      std::cout << "<ERROR: User '" << username << "' not found>\n";
+      return;
+    }
+
+    if (!dictionaries_.contains(dictName))
+    {
+      std::cout << "<ERROR: Dictionary '" << dictName << "' not found>\n";
+      return;
+    }
+
+    BSTree<std::string, WordStats>& userStats = stats_.at(username);
+    BSTree<std::string, Translation>& dict = dictionaries_.at(dictName);
+
+    std::vector<std::string> weakWords;
+    std::vector<std::string> allWords = userStats.getKeys();
+
+    for (size_t i = 0; i < allWords.size(); ++i)
+    {
+      std::string word = allWords[i];
+      WordStats ws = userStats.at(word);
+      if (!ws.isLearned && ws.wrongCount >= ws.correctCount && ws.totalAttempts >= 2)
+      {
+        weakWords.push_back(word);
+      }
+    }
+
+    if (weakWords.empty())
+    {
+      std::cout << "No weak words! Great job!\n";
+      return;
+    }
+
+    for (int i = static_cast<int>(weakWords.size()) - 1; i > 0; --i)
+    {
+      int j = rand() % (i + 1);
+      std::string temp = weakWords[i];
+      weakWords[i] = weakWords[j];
+      weakWords[j] = temp;
+    }
+
+    int lessonSize = count;
+    if (lessonSize > static_cast<int>(weakWords.size()))
+    {
+      lessonSize = static_cast<int>(weakWords.size());
+    }
+
+    std::cout << "\n=== WEAK WORDS LESSON ===\n";
+    std::cout << "User: " << username << "\n";
+    std::cout << "Focusing on " << lessonSize << " problematic words\n\n";
+
+    int correctInSession = 0;
+
+    for (int i = 0; i < lessonSize; ++i)
+    {
+      std::string word = weakWords[i];
+      Translation trans = dict.at(word);
+
+      std::cout << "[" << i+1 << "/" << lessonSize << "] " << word << "\n";
+      std::cout << "Your translation: ";
+
+      std::string answer;
+      std::getline(std::cin, answer);
+
+      bool isCorrect = (trim(answer) == trans.russian);
+
+      WordStats ws;
+      if (userStats.contains(word))
+      {
+        ws = userStats.at(word);
+      }
+      ws.totalAttempts++;
+
+      if (isCorrect)
+      {
+        ws.correctCount++;
+        correctInSession++;
+        std::cout << "CORRECT!\n";
+
+        if (ws.correctCount >= 3 && !ws.isLearned)
+        {
+          ws.isLearned = true;
+          std::cout << "Word learned! Removed from weak pool.\n";
+        }
+      }
+      else
+      {
+        ws.wrongCount++;
+        std::cout << "WRONG! Correct: " << trans.russian << "\n";
+      }
+
+      userStats.insert(word, ws);
+      std::cout << "\n";
+    }
+
+    saveUserStats(username);
+
+    std::cout << "=== SESSION RESULTS ===\n";
+    std::cout << "Correct: " << correctInSession << "/" << lessonSize;
+    if (lessonSize > 0)
+    {
+      std::cout << " (" << (correctInSession * 100 / lessonSize) << "%)\n";
+    }
+    else
+    {
+      std::cout << "\n";
+    }
+  }
+
   void showStats(const std::string& username)
   {
     if (!users_.contains(username))
@@ -469,9 +597,11 @@ public:
   }
 
 private:
+
   BSTree<std::string, BSTree<std::string, Translation>> dictionaries_;
   BSTree<std::string, User> users_;
   BSTree<std::string, BSTree<std::string, WordStats>> stats_;
+
   std::string currentUser_;
 
   int countLearnedWords(const std::string& username)
@@ -502,15 +632,20 @@ private:
     return std::string(buf);
   }
 
+  std::string getCurrentDirectory()
+  {
+    char buffer[1024];
+    if (getcwd(buffer, sizeof(buffer)) != nullptr)
+    {
+      return std::string(buffer) + "/";
+    }
+    return "./";
+  }
+
   std::string getDesktopPath()
   {
 #ifdef _WIN32
-    char* desktop = nullptr;
-    size_t len = 0;
-    _dupenv_s(&desktop, &len, "USERPROFILE");
-    std::string path = std::string(desktop) + "\\Desktop\\";
-    free(desktop);
-    return path;
+    return std::string(getenv("USERPROFILE")) + "\\Desktop\\";
 #else
     return std::string(getenv("HOME")) + "/Desktop/";
 #endif
@@ -523,6 +658,17 @@ private:
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, last - first + 1);
   }
+
+  std::string trimQuotes(const std::string& str)
+  {
+    std::string s = trim(str);
+    if (s.size() >= 2 && s.front() == '"' && s.back() == '"')
+    {
+      return s.substr(1, s.size() - 2);
+    }
+    return s;
+  }
+
 
   void saveUserStats(const std::string& username)
   {
